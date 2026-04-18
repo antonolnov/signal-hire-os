@@ -44,7 +44,7 @@ export default async function HomePage() {
       (session) =>
         session.status === "escalated" || session.messages.some((message) => message.requiresApproval),
     )
-    .slice(0, 4);
+    .slice(0, 3);
 
   const candidateQueue = candidates
     .map((candidate) => {
@@ -64,15 +64,15 @@ export default async function HomePage() {
       const rightFit = fitOrder[right.application?.fitLevel ?? "weak"] ?? 99;
       return leftFit - rightFit;
     })
-    .slice(0, 4);
+    .slice(0, 3);
 
   const pipelineHighlights = pipeline.slice(0, 2).map((job) => ({
     job,
     activeStages: job.pipelineStages.filter((stage) => stage.applications.length > 0),
   }));
 
-  const sourceHighlights = (sources as any[]).slice(0, 3);
-  const latestPlaybooks = (playbooks as any[]).slice(0, 3);
+  const sourceHighlights = (sources as any[]).slice(0, 2);
+  const latestPlaybooks = (playbooks as any[]).slice(0, 2);
 
   const summaryCards = [
     {
@@ -81,132 +81,109 @@ export default async function HomePage() {
       meta: `${jobMetrics.totalApplications} заявок в работе`,
     },
     {
-      value: candidateMetrics.screeningCandidates,
-      label: "Очередь скрининга",
-      meta: `${candidateMetrics.strongFitCandidates} сильных кандидатов`,
+      value: candidateMetrics.totalCandidates,
+      label: "Кандидаты в базе",
+      meta: `${candidateMetrics.strongFitCandidates} сильных профилей`,
     },
     {
       value: conversationMetrics.approvalQueue,
       label: "Нужно согласование",
-      meta: `${conversationMetrics.escalations} эскалаций у рекрутера`,
+      meta: `${conversationMetrics.escalations} эскалаций в очереди`,
     },
     {
       value: playbookMetrics.liveSessions,
       label: "Активные ИИ-сессии",
-      meta: `${playbookMetrics.activePlaybooks} плейбуков в работе`,
+      meta: `${playbookMetrics.activePlaybooks} плейбуков работают`,
+    },
+  ];
+
+  const actionSignals = [
+    {
+      tone: "danger",
+      value: conversationMetrics.approvalQueue,
+      label: "Диалоги ждут решения",
+      meta: "Оператору нужно снять блокировки и дать ответ по спорным веткам.",
+      href: "/conversations",
+      action: "Открыть инбокс",
+    },
+    {
+      tone: "warning",
+      value: pipelineMetrics.screeningLoad,
+      label: "Кандидаты стоят на скрининге",
+      meta: "Если разобрать этот контур, пайплайн быстрее дойдёт до интервью и офферов.",
+      href: "/pipeline",
+      action: "Открыть пайплайн",
+    },
+    {
+      tone: "info",
+      value: importMetrics.pendingReview,
+      label: "Импорт требует проверки",
+      meta: "Новые записи загружены, но ещё не до конца связаны с вакансиями и кандидатами.",
+      href: "/imports",
+      action: "Проверить импорт",
     },
   ];
 
   return (
     <PageShell chrome="dashboard">
-      <section className="dashboard-metrics">
-        {summaryCards.map((card) => (
-          <article className="metric-card" key={card.label}>
-            <div className="metric-label">{card.label}</div>
-            <strong>{card.value}</strong>
-            <div className="metric-meta">{card.meta}</div>
-          </article>
-        ))}
+      <section className="card summary-strip">
+        <div className="summary-strip-inner">
+          {summaryCards.map((card) => (
+            <div className="summary-cell" key={card.label}>
+              <div className="metric-label">{card.label}</div>
+              <strong>{card.value}</strong>
+              <div className="metric-meta">{card.meta}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <section className="grid-3 dashboard-section">
-        <article className="card">
+      <section className="focus-grid dashboard-section">
+        <article className="card card-primary">
           <div className="card-inner">
             <div className="section-head">
               <div>
-                <div className="kicker">Приоритетный инбокс</div>
-                <h3 className="section-title">Что требует ручного разбора</h3>
+                <div className="kicker">Главный контур</div>
+                <h3 className="section-title">Что сейчас реально тормозит найм</h3>
               </div>
-              <Link className="inline-link" href="/conversations">
-                Все диалоги
-              </Link>
             </div>
-            <div className="stack compact-stack">
-              {prioritySessions.length > 0 ? (
-                prioritySessions.map((session) => {
-                  const lastMessage = session.messages?.[0];
-                  const approvalPending = session.messages.some((message) => message.requiresApproval);
 
-                  return (
-                    <div className="list-card" key={session.id}>
-                      <div className="list-card-top">
-                        <strong>{session.candidate?.fullName ?? "Неизвестный кандидат"}</strong>
-                        <span className="badge">{uiLabel(session.status)}</span>
-                      </div>
-                      <div className="muted">
-                        {[session.application?.job?.title, session.playbook?.name]
-                          .filter(Boolean)
-                          .join(" · ") || "Пока без связанного контекста"}
-                      </div>
-                      <p>{lastMessage?.content ?? "Здесь появится превью сообщения."}</p>
-                      <div className="badge-row badge-row-tight">
-                        {approvalPending ? <span className="badge">Нужно согласование</span> : null}
-                        {session.playbook?.channelType ? (
-                          <span className="badge">{uiLabel(session.playbook.channelType)}</span>
-                        ) : null}
-                      </div>
+            <div className="signal-list">
+              {actionSignals.map((signal) => (
+                <div className={`signal-card tone-${signal.tone}`} key={signal.label}>
+                  <div className="signal-top">
+                    <div>
+                      <div className="signal-label">{signal.label}</div>
+                      <p>{signal.meta}</p>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="empty-state">Сейчас нет диалогов, которые блокируют поток найма.</div>
-              )}
-            </div>
-          </div>
-        </article>
-
-        <article className="card">
-          <div className="card-inner">
-            <div className="section-head">
-              <div>
-                <div className="kicker">Очередь кандидатов</div>
-                <h3 className="section-title">Кого двигать дальше</h3>
-              </div>
-              <Link className="inline-link" href="/candidates">
-                Открыть базу
-              </Link>
-            </div>
-            <div className="stack compact-stack">
-              {candidateQueue.length > 0 ? (
-                candidateQueue.map(({ candidate, application, recommendation, insight }) => (
-                  <div className="list-card" key={candidate.id}>
-                    <div className="list-card-top">
-                      <strong>{candidate.fullName}</strong>
-                      {application?.fitLevel ? <span className="badge">{uiLabel(application.fitLevel)}</span> : null}
-                    </div>
-                    <div className="muted">
-                      {[application?.job?.title, candidate.headline, candidate.location]
-                        .filter(Boolean)
-                        .join(" · ") || "Пока без метаданных"}
-                    </div>
-                    <p>{recommendation?.why ?? application?.recommendedNextStep ?? "Здесь появится следующий шаг."}</p>
-                    <div className="muted">{insight?.content ?? candidate.summary ?? "Здесь появится сводка."}</div>
+                    <strong>{signal.value}</strong>
                   </div>
-                ))
-              ) : (
-                <div className="empty-state">Очередь пуста, можно загружать новых кандидатов.</div>
-              )}
+                  <Link className="inline-link" href={signal.href}>
+                    {signal.action}
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         </article>
 
-        <article className="card">
+        <article className="card card-secondary">
           <div className="card-inner">
             <div className="section-head">
               <div>
-                <div className="kicker">Срез системы</div>
-                <h3 className="section-title">Текущее состояние контура</h3>
+                <div className="kicker">Состояние системы</div>
+                <h3 className="section-title">Нагрузка по контуру</h3>
               </div>
             </div>
 
-            <div className="mini-stats">
+            <div className="mini-stats mini-stats-tall">
               <div className="mini-stat">
                 <span>Открытые вакансии</span>
                 <strong>{pipelineMetrics.openJobs}</strong>
               </div>
               <div className="mini-stat">
-                <span>Всего кандидатов</span>
-                <strong>{candidateMetrics.totalCandidates}</strong>
+                <span>Очередь скрининга</span>
+                <strong>{candidateMetrics.screeningCandidates}</strong>
               </div>
               <div className="mini-stat">
                 <span>Источники импорта</span>
@@ -216,14 +193,10 @@ export default async function HomePage() {
                 <span>Связанные заявки</span>
                 <strong>{importMetrics.linkedApplications}</strong>
               </div>
-              <div className="mini-stat">
-                <span>Скрининг в очереди</span>
-                <strong>{pipelineMetrics.screeningLoad}</strong>
-              </div>
-              <div className="mini-stat">
-                <span>Импорт на проверке</span>
-                <strong>{importMetrics.pendingReview}</strong>
-              </div>
+            </div>
+
+            <div className="subsection-note muted">
+              Сейчас акцент смещён в ручные решения и разбор очереди, а не в расширение входящего потока.
             </div>
           </div>
         </article>
@@ -234,43 +207,79 @@ export default async function HomePage() {
           <div className="card-inner">
             <div className="section-head">
               <div>
-                <div className="kicker">Автоматизация</div>
-                <h3 className="section-title">Плейбуки и входящий поток</h3>
+                <div className="kicker">Ручные решения</div>
+                <h3 className="section-title">Инбокс и кандидаты, где нужен следующий шаг</h3>
               </div>
-              <Link className="inline-link" href="/playbooks">
-                Открыть плейбуки
-              </Link>
             </div>
-            <div className="stack compact-stack">
-              {latestPlaybooks.map((playbook) => (
-                <div className="list-card" key={playbook.id}>
-                  <div className="list-card-top">
-                    <strong>{playbook.name}</strong>
-                    <span className="badge">{uiLabel(playbook.status)}</span>
-                  </div>
-                  <div className="muted">
-                    {[playbook.job?.title, uiStageName(playbook.targetStage?.name), uiLabel(playbook.channelType)]
-                      .filter(Boolean)
-                      .join(" · ") || "Пока без связанного контекста"}
-                  </div>
-                  <p>{playbook.objective ?? "Здесь появится цель плейбука."}</p>
-                </div>
-              ))}
 
-              {sourceHighlights.map((source) => (
-                <div className="list-card" key={source.id}>
-                  <div className="list-card-top">
-                    <strong>{source.label}</strong>
-                    <span className="badge">{uiLabel(source.type)}</span>
-                  </div>
-                  <div className="muted">{source.applications.length} связанных заявок</div>
-                  <p>
-                    {source.ingestions?.[0]
-                      ? `${uiLabel(source.ingestions[0].status)} · ${uiLabel(source.ingestions[0].payloadType)}`
-                      : "Пока нет новых записей импорта"}
-                  </p>
-                </div>
-              ))}
+            <div className="subsection-block">
+              <div className="subsection-headline">
+                <strong>Приоритетный инбокс</strong>
+                <Link className="inline-link" href="/conversations">
+                  Все диалоги
+                </Link>
+              </div>
+              <div className="stack compact-stack">
+                {prioritySessions.length > 0 ? (
+                  prioritySessions.map((session) => {
+                    const lastMessage = session.messages?.[0];
+                    const approvalPending = session.messages.some((message) => message.requiresApproval);
+
+                    return (
+                      <div className="list-card list-card-soft" key={session.id}>
+                        <div className="list-card-top">
+                          <strong>{session.candidate?.fullName ?? "Неизвестный кандидат"}</strong>
+                          <span className="badge">{uiLabel(session.status)}</span>
+                        </div>
+                        <div className="muted">
+                          {[session.application?.job?.title, session.playbook?.name]
+                            .filter(Boolean)
+                            .join(" · ") || "Пока без связанного контекста"}
+                        </div>
+                        <p>{lastMessage?.content ?? "Здесь появится превью сообщения."}</p>
+                        <div className="badge-row badge-row-tight">
+                          {approvalPending ? <span className="badge">Нужно согласование</span> : null}
+                          {session.playbook?.channelType ? (
+                            <span className="badge">{uiLabel(session.playbook.channelType)}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="empty-state">Сейчас нет диалогов, которые блокируют поток найма.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="subsection-block">
+              <div className="subsection-headline">
+                <strong>Кандидаты к следующему шагу</strong>
+                <Link className="inline-link" href="/candidates">
+                  Открыть базу
+                </Link>
+              </div>
+              <div className="stack compact-stack">
+                {candidateQueue.length > 0 ? (
+                  candidateQueue.map(({ candidate, application, recommendation, insight }) => (
+                    <div className="list-card list-card-soft" key={candidate.id}>
+                      <div className="list-card-top">
+                        <strong>{candidate.fullName}</strong>
+                        {application?.fitLevel ? <span className="badge">{uiLabel(application.fitLevel)}</span> : null}
+                      </div>
+                      <div className="muted">
+                        {[application?.job?.title, candidate.headline, candidate.location]
+                          .filter(Boolean)
+                          .join(" · ") || "Пока без метаданных"}
+                      </div>
+                      <p>{recommendation?.why ?? application?.recommendedNextStep ?? "Здесь появится следующий шаг."}</p>
+                      <div className="muted">{insight?.content ?? candidate.summary ?? "Здесь появится сводка."}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="empty-state">Очередь пуста, можно загружать новых кандидатов.</div>
+                )}
+              </div>
             </div>
           </div>
         </article>
@@ -279,26 +288,69 @@ export default async function HomePage() {
           <div className="card-inner">
             <div className="section-head">
               <div>
-                <div className="kicker">Доступ к модулям</div>
-                <h3 className="section-title">Быстрые переходы по рабочим контурам</h3>
+                <div className="kicker">Автоматизация и поток</div>
+                <h3 className="section-title">Плейбуки, импорт и точки контроля</h3>
               </div>
             </div>
-            <div className="quick-links">
+
+            <div className="subsection-block">
+              <div className="subsection-headline">
+                <strong>Активные плейбуки</strong>
+                <Link className="inline-link" href="/playbooks">
+                  Все плейбуки
+                </Link>
+              </div>
+              <div className="stack compact-stack">
+                {latestPlaybooks.map((playbook) => (
+                  <div className="list-card list-card-soft" key={playbook.id}>
+                    <div className="list-card-top">
+                      <strong>{playbook.name}</strong>
+                      <span className="badge">{uiLabel(playbook.status)}</span>
+                    </div>
+                    <div className="muted">
+                      {[playbook.job?.title, uiStageName(playbook.targetStage?.name), uiLabel(playbook.channelType)]
+                        .filter(Boolean)
+                        .join(" · ") || "Пока без связанного контекста"}
+                    </div>
+                    <p>{playbook.objective ?? "Здесь появится цель плейбука."}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="subsection-block">
+              <div className="subsection-headline">
+                <strong>Свежий импорт</strong>
+                <Link className="inline-link" href="/imports">
+                  Центр импорта
+                </Link>
+              </div>
+              <div className="stack compact-stack">
+                {sourceHighlights.map((source) => (
+                  <div className="list-card list-card-soft" key={source.id}>
+                    <div className="list-card-top">
+                      <strong>{source.label}</strong>
+                      <span className="badge">{uiLabel(source.type)}</span>
+                    </div>
+                    <div className="muted">{source.applications.length} связанных заявок</div>
+                    <p>
+                      {source.ingestions?.[0]
+                        ? `${uiLabel(source.ingestions[0].status)} · ${uiLabel(source.ingestions[0].payloadType)}`
+                        : "Пока нет новых записей импорта"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="quick-links quick-links-compact">
               <Link className="quick-link" href="/jobs">
                 <strong>{jobMetrics.activeJobs} вакансий</strong>
-                <span>Структура ролей, критерии и этапы найма.</span>
+                <span>План ролей, критерии и этапы.</span>
               </Link>
               <Link className="quick-link" href="/pipeline">
-                <strong>{pipelineMetrics.openJobs} активных пайплайна</strong>
-                <span>Узкие места, переходы между этапами и загрузка.</span>
-              </Link>
-              <Link className="quick-link" href="/imports">
-                <strong>{importMetrics.sourceCount} источников</strong>
-                <span>Импорт, разбор входящего потока и связка сущностей.</span>
-              </Link>
-              <Link className="quick-link" href="/conversations">
-                <strong>{sessions.length} диалогов</strong>
-                <span>Ручные согласования, эскалации и контроль ответов.</span>
+                <strong>{pipelineMetrics.openJobs} пайплайнов</strong>
+                <span>Загрузка, переходы и узкие места.</span>
               </Link>
             </div>
           </div>
@@ -333,7 +385,7 @@ export default async function HomePage() {
               <div className="stack compact-stack" style={{ marginTop: 18 }}>
                 {activeStages.length > 0 ? (
                   activeStages.map((stage) => (
-                    <div className="list-card" key={stage.id}>
+                    <div className="list-card list-card-soft" key={stage.id}>
                       <div className="list-card-top">
                         <strong>{uiStageName(stage.name)}</strong>
                         <span className="badge">{stage.applications.length}</span>
