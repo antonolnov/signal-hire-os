@@ -4,10 +4,11 @@ import {
   deleteCandidate,
   updateCandidate,
 } from "../../lib/actions/candidates";
+import { getCandidates, getCandidateSummaryMetrics } from "../../lib/queries/candidates";
 import { getImportSources } from "../../lib/queries/imports";
 import { getJobs } from "../../lib/queries/jobs";
-import { getCandidates, getCandidateSummaryMetrics } from "../../lib/queries/candidates";
 import { ensureSeedData } from "../../lib/seed";
+import { uiLabel, uiStageName } from "../../lib/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -23,101 +24,110 @@ export default async function CandidatesPage() {
   return (
     <PageShell>
       <section className="grid-2">
-        <article className="card">
+        <article className="card highlight">
           <div className="card-inner">
-            <div className="kicker">Candidate workspace</div>
-            <h2 className="section-title">Кандидаты уже собираются в decision-ready профили</h2>
+            <div className="kicker">Рабочая зона кандидатов</div>
+            <h2 className="section-title">Профили должны быть готовы к решению, а не просто храниться</h2>
             <p className="muted">
-              Теперь здесь уже не только read view, но и локальный CRUD для профилей и первичного
-              прикрепления к вакансии.
+              Кандидат теперь выглядит как рабочая единица. Здесь рядом сводка, оценка совпадения,
+              этап, источник, следующий шаг и быстрый CRUD профиля без отдельной внешней базы.
             </p>
             <div className="hero-grid">
               <div className="stat">
                 <strong>{metrics.totalCandidates}</strong>
-                <div>Кандидатов</div>
+                <div>Всего кандидатов</div>
               </div>
               <div className="stat">
                 <strong>{metrics.screeningCandidates}</strong>
-                <div>В screening</div>
+                <div>На скрининге</div>
               </div>
               <div className="stat">
                 <strong>{metrics.strongFitCandidates}</strong>
-                <div>Strong fit</div>
+                <div>Сильное совпадение</div>
               </div>
             </div>
           </div>
         </article>
-        <article className="card highlight">
+
+        <article className="card">
           <div className="card-inner">
-            <div className="kicker">Create candidate</div>
+            <div className="kicker">Создать кандидата</div>
             <form action={createCandidate} className="stack">
               <input type="hidden" name="workspaceSlug" value="signal-hire-demo" />
+              <div className="grid-2">
+                <label>
+                  <div>Полное имя</div>
+                  <input name="fullName" required placeholder="Анна Иванова" />
+                </label>
+                <label>
+                  <div>Электронная почта</div>
+                  <input name="email" type="email" placeholder="anna@example.com" />
+                </label>
+              </div>
+              <div className="grid-2">
+                <label>
+                  <div>Роль / заголовок</div>
+                  <input name="headline" placeholder="Старший рекрутер" />
+                </label>
+                <label>
+                  <div>Локация</div>
+                  <input name="location" placeholder="Берлин / Удалённо" />
+                </label>
+              </div>
+              <div className="grid-2">
+                <label>
+                  <div>Текущая компания</div>
+                  <input name="currentCompany" placeholder="Текущий работодатель" />
+                </label>
+                <label>
+                  <div>Лет опыта</div>
+                  <input name="yearsExperience" type="number" min="0" placeholder="6" />
+                </label>
+              </div>
               <label>
-                <div>Полное имя</div>
-                <input name="fullName" required placeholder="Например, Jane Doe" />
+                <div>Навыки</div>
+                <input name="skills" placeholder="поиск кандидатов, операционный найм, управление стейкхолдерами" />
               </label>
+              <div className="grid-2">
+                <label>
+                  <div>Вакансия</div>
+                  <select name="jobId" defaultValue="">
+                    <option value="">Без связанной заявки</option>
+                    {jobs.map((job: any) => (
+                      <option key={job.id} value={job.id}>
+                        {job.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <div>Источник</div>
+                  <select name="sourceId" defaultValue="">
+                    <option value="">Без источника</option>
+                    {sources.map((source: any) => (
+                      <option key={source.id} value={source.id}>
+                        {source.label} · {uiLabel(source.type)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <label>
-                <div>Email</div>
-                <input name="email" type="email" placeholder="jane@example.com" />
-              </label>
-              <label>
-                <div>Headline</div>
-                <input name="headline" placeholder="Senior Recruiter" />
-              </label>
-              <label>
-                <div>Location</div>
-                <input name="location" placeholder="Berlin / Remote" />
-              </label>
-              <label>
-                <div>Current company</div>
-                <input name="currentCompany" placeholder="Current employer" />
-              </label>
-              <label>
-                <div>Years of experience</div>
-                <input name="yearsExperience" type="number" min="0" placeholder="6" />
-              </label>
-              <label>
-                <div>Skills</div>
-                <input name="skills" placeholder="Python, Queues, Postgres" />
-              </label>
-              <label>
-                <div>Job</div>
-                <select name="jobId" defaultValue="">
-                  <option value="">Без application</option>
-                  {jobs.map((job: any) => (
-                    <option key={job.id} value={job.id}>
-                      {job.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <div>Source</div>
-                <select name="sourceId" defaultValue="">
-                  <option value="">Без source</option>
-                  {sources.map((source: any) => (
-                    <option key={source.id} value={source.id}>
-                      {source.label} · {source.type}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <div>Stage override</div>
+                <div>Принудительный этап</div>
                 <select name="currentStageId" defaultValue="">
-                  <option value="">Авто stage</option>
+                  <option value="">Определить этап автоматически</option>
                   {jobs.flatMap((job: any) =>
                     (job.pipelineStages ?? []).map((stage: any) => (
                       <option key={stage.id} value={stage.id}>
-                        {job.title} · {stage.name}
+                        {job.title} · {uiStageName(stage.name)}
                       </option>
                     )),
                   )}
                 </select>
               </label>
               <label>
-                <div>Summary</div>
-                <textarea name="summary" rows={4} placeholder="Короткий summary по кандидату" />
+                <div>Сводка</div>
+                <textarea name="summary" rows={4} placeholder="Короткая сводка для рекрутера" />
               </label>
               <button className="cta" type="submit">
                 Создать кандидата
@@ -127,7 +137,7 @@ export default async function CandidatesPage() {
         </article>
       </section>
 
-      <section className="grid-3">
+      <section className="grid-3 dashboard-section">
         {candidates.map((candidate) => {
           const card = candidate as any;
           const primaryApplication = card.applications?.[0];
@@ -139,56 +149,58 @@ export default async function CandidatesPage() {
           return (
             <article className="card" key={card.id}>
               <div className="card-inner">
-                <div className="kicker">{primaryApplication?.job.title ?? "Unassigned"}</div>
+                <div className="kicker">{primaryApplication?.job?.title ?? "Без назначения"}</div>
                 <h3 className="section-title">{card.fullName}</h3>
                 <p className="muted">
                   {[
                     card.headline,
                     card.location,
                     card.currentCompany,
-                    card.yearsExperience ? `${card.yearsExperience} years exp.` : null,
+                    card.yearsExperience ? `${card.yearsExperience} лет опыта` : null,
                   ]
                     .filter(Boolean)
-                    .join(" · ") || "Без деталей"}
+                    .join(" · ") || "Пока без метаданных профиля"}
                 </p>
+
                 <div className="badge-row">
-                  {primaryApplication?.fitLevel ? <span className="badge">{primaryApplication.fitLevel}</span> : null}
+                  {primaryApplication?.fitLevel ? <span className="badge">{uiLabel(primaryApplication.fitLevel)}</span> : null}
                   {primaryApplication?.currentStage?.name ? (
-                    <span className="badge">{primaryApplication.currentStage.name}</span>
+                    <span className="badge">{uiStageName(primaryApplication.currentStage.name)}</span>
                   ) : null}
                 </div>
+
                 <ul className="list">
-                  <li>{latestInsight?.content ?? card.summary ?? "Summary появится здесь"}</li>
+                  <li>{latestInsight?.content ?? card.summary ?? "Здесь появится сводка кандидата."}</li>
                   <li>
-                    {latestRecommendation?.why ?? primaryApplication?.recommendedNextStep ?? "Next step появится здесь"}
+                    {latestRecommendation?.why ?? primaryApplication?.recommendedNextStep ?? "Здесь появится следующий шаг."}
                   </li>
-                  <li>{skills || "Skills появятся после structured profile extraction"}</li>
+                  <li>{skills || "Навыки появятся после структурированного извлечения профиля."}</li>
                 </ul>
 
-                <form action={updateCandidate} className="stack" style={{ marginTop: 20 }}>
+                <form action={updateCandidate} className="grid-2" style={{ marginTop: 20 }}>
                   <input type="hidden" name="candidateId" value={card.id} />
                   <label>
-                    <div>Имя</div>
+                    <div>Полное имя</div>
                     <input name="fullName" defaultValue={card.fullName ?? ""} required />
                   </label>
                   <label>
-                    <div>Email</div>
+                    <div>Электронная почта</div>
                     <input name="email" type="email" defaultValue={card.email ?? ""} />
                   </label>
                   <label>
-                    <div>Headline</div>
+                    <div>Роль / заголовок</div>
                     <input name="headline" defaultValue={card.headline ?? ""} />
                   </label>
                   <label>
-                    <div>Location</div>
+                    <div>Локация</div>
                     <input name="location" defaultValue={card.location ?? ""} />
                   </label>
                   <label>
-                    <div>Current company</div>
+                    <div>Текущая компания</div>
                     <input name="currentCompany" defaultValue={card.currentCompany ?? ""} />
                   </label>
                   <label>
-                    <div>Years of experience</div>
+                    <div>Лет опыта</div>
                     <input
                       name="yearsExperience"
                       type="number"
@@ -197,20 +209,24 @@ export default async function CandidatesPage() {
                     />
                   </label>
                   <label>
-                    <div>Skills</div>
+                    <div>Навыки</div>
                     <input name="skills" defaultValue={skills} />
                   </label>
                   <label>
-                    <div>Work preference</div>
+                    <div>Предпочтение по формату работы</div>
                     <input name="workPreference" defaultValue={card.profile?.workPreference ?? ""} />
                   </label>
-                  <label>
-                    <div>Summary</div>
-                    <textarea name="summary" rows={4} defaultValue={card.summary ?? ""} />
-                  </label>
-                  <button className="cta secondary" type="submit">
-                    Сохранить профиль
-                  </button>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <label>
+                      <div>Сводка</div>
+                      <textarea name="summary" rows={4} defaultValue={card.summary ?? ""} />
+                    </label>
+                  </div>
+                  <div style={{ gridColumn: "1 / -1" }}>
+                    <button className="cta secondary" type="submit">
+                      Сохранить профиль кандидата
+                    </button>
+                  </div>
                 </form>
 
                 <form action={deleteCandidate} style={{ marginTop: 12 }}>

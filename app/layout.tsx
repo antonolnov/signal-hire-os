@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Signal Hire OS",
-  description: "AI-native ATS MVP for recruiting teams of 5-20 recruiters.",
+  description: "Операторский ATS MVP для ИИ-ориентированных процессов рекрутинга.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
