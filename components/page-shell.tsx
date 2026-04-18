@@ -57,13 +57,20 @@ export function PageShell({ children, chrome = "default" }: PageShellProps) {
               </div>
             </>
           ) : (
-            <nav className="nav nav-vertical" aria-label="Основная навигация">
-              {navItems.map(([href, label]) => (
-                <Link aria-current={pathname === href ? "page" : undefined} href={href} key={href}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
+            <>
+              <div className="sidebar-compact-head">
+                <div className="sidebar-compact-title">Signal Hire</div>
+                <div className="sidebar-compact-meta">Операторская панель</div>
+              </div>
+
+              <nav className="nav nav-vertical nav-compact" aria-label="Основная навигация">
+                {navItems.map(([href, label]) => (
+                  <Link aria-current={pathname === href ? "page" : undefined} href={href} key={href}>
+                    <span>{label}</span>
+                  </Link>
+                ))}
+              </nav>
+            </>
           )}
         </aside>
 
