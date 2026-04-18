@@ -6,7 +6,7 @@ import {
   getConversationSummaryMetrics,
 } from "../lib/queries/conversations";
 import { getImportSources, getImportSummaryMetrics } from "../lib/queries/imports";
-import { getJobs, getJobSummaryMetrics } from "../lib/queries/jobs";
+import { getJobSummaryMetrics } from "../lib/queries/jobs";
 import { getPipelineBoard, getPipelineSummaryMetrics } from "../lib/queries/pipeline";
 import { getPlaybooks, getPlaybookSummaryMetrics } from "../lib/queries/playbooks";
 import { ensureConversationDemoData, ensureSeedData } from "../lib/seed";
@@ -24,9 +24,8 @@ export default async function HomePage() {
   await ensureSeedData();
   await ensureConversationDemoData();
 
-  const [jobs, jobMetrics, candidates, candidateMetrics, sessions, conversationMetrics, pipeline, pipelineMetrics, playbooks, playbookMetrics, sources, importMetrics] =
+  const [jobMetrics, candidates, candidateMetrics, sessions, conversationMetrics, pipeline, pipelineMetrics, playbooks, playbookMetrics, sources, importMetrics] =
     await Promise.all([
-      getJobs(),
       getJobSummaryMetrics(),
       getCandidates(),
       getCandidateSummaryMetrics(),
@@ -75,117 +74,39 @@ export default async function HomePage() {
   const sourceHighlights = (sources as any[]).slice(0, 3);
   const latestPlaybooks = (playbooks as any[]).slice(0, 3);
 
+  const summaryCards = [
+    {
+      value: jobMetrics.activeJobs,
+      label: "Активные вакансии",
+      meta: `${jobMetrics.totalApplications} заявок в работе`,
+    },
+    {
+      value: candidateMetrics.screeningCandidates,
+      label: "Очередь скрининга",
+      meta: `${candidateMetrics.strongFitCandidates} сильных кандидатов`,
+    },
+    {
+      value: conversationMetrics.approvalQueue,
+      label: "Нужно согласование",
+      meta: `${conversationMetrics.escalations} эскалаций у рекрутера`,
+    },
+    {
+      value: playbookMetrics.liveSessions,
+      label: "Активные ИИ-сессии",
+      meta: `${playbookMetrics.activePlaybooks} плейбуков в работе`,
+    },
+  ];
+
   return (
-    <PageShell>
-      <section className="hero">
-        <article className="card highlight">
-          <div className="card-inner">
-            <div className="kicker">Операционная панель</div>
-            <h2 className="hero-title">Вся воронка найма под рукой.</h2>
-            <p className="muted">
-              Здесь видно, где тормозит поток кандидатов, кому нужен следующий шаг и в каких местах
-              автоматизации требуется решение рекрутера.
-            </p>
-
-            <div className="hero-grid">
-              <div className="stat">
-                <strong>{jobMetrics.activeJobs}</strong>
-                <div>Активные вакансии</div>
-                <div className="muted">{jobMetrics.totalApplications} заявок в движении</div>
-              </div>
-              <div className="stat">
-                <strong>{candidateMetrics.screeningCandidates}</strong>
-                <div>Очередь скрининга</div>
-                <div className="muted">{candidateMetrics.strongFitCandidates} сильных кандидатов</div>
-              </div>
-              <div className="stat">
-                <strong>{conversationMetrics.approvalQueue}</strong>
-                <div>Очередь согласований</div>
-                <div className="muted">{conversationMetrics.escalations} эскалаций требуют участия</div>
-              </div>
-              <div className="stat">
-                <strong>{playbookMetrics.liveSessions}</strong>
-                <div>Активные ИИ-сессии</div>
-                <div className="muted">{playbookMetrics.activePlaybooks} активных плейбуков</div>
-              </div>
-            </div>
-
-            <div className="cta-row">
-              <Link className="cta" href="/pipeline">
-                Открыть пайплайн
-              </Link>
-              <Link className="cta secondary" href="/conversations">
-                Разобрать инбокс
-              </Link>
-              <Link className="cta secondary" href="/candidates">
-                Проверить кандидатов
-              </Link>
-            </div>
-          </div>
-        </article>
-
-        <aside className="stack">
-          <div className="card">
-            <div className="card-inner">
-              <div className="section-head">
-                <div>
-                  <div className="kicker">Фокус дня</div>
-                  <h3 className="section-title">Ключевые задачи на сегодня</h3>
-                </div>
-              </div>
-              <div className="alert-list">
-                <div className="alert-item">
-                  <strong>{conversationMetrics.approvalQueue} диалогов заблокированы</strong>
-                  <div className="muted">
-                    В этих ветках бот дошёл до границы правил и ждёт решения человека.
-                  </div>
-                </div>
-                <div className="alert-item">
-                  <strong>{pipelineMetrics.screeningLoad} заявок стоят на скрининге</strong>
-                  <div className="muted">
-                    Если разобрать эту очередь, пайплайн быстрее дойдёт до интервью и офферов.
-                  </div>
-                </div>
-                <div className="alert-item">
-                  <strong>{importMetrics.pendingReview} импортов требуют проверки</strong>
-                  <div className="muted">
-                    Новые записи загружены, но ещё не до конца разобраны и связаны с вакансиями.
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-inner">
-              <div className="kicker">Срез по системе</div>
-              <table className="panel-table">
-                <tbody>
-                  <tr>
-                    <th>Открытые вакансии в пайплайне</th>
-                    <td>{pipelineMetrics.openJobs}</td>
-                  </tr>
-                  <tr>
-                    <th>Всего кандидатов</th>
-                    <td>{candidateMetrics.totalCandidates}</td>
-                  </tr>
-                  <tr>
-                    <th>Типы источников</th>
-                    <td>{importMetrics.sourceCount}</td>
-                  </tr>
-                  <tr>
-                    <th>Связанные заявки</th>
-                    <td>{importMetrics.linkedApplications}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="badge-row">
-                <span className="badge">Локальная среда</span>
-                <span className="badge">Самодостаточная демо-сборка</span>
-              </div>
-            </div>
-          </div>
-        </aside>
+    <PageShell chrome="dashboard">
+      <section className="dashboard-metrics">
+        {summaryCards.map((card) => (
+          <article className="metric-card" key={card.label}>
+            <div className="metric-label">{card.label}</div>
+            <strong>{card.value}</strong>
+            <div className="metric-meta">{card.meta}</div>
+          </article>
+        ))}
       </section>
 
       <section className="grid-3 dashboard-section">
@@ -194,10 +115,10 @@ export default async function HomePage() {
             <div className="section-head">
               <div>
                 <div className="kicker">Приоритетный инбокс</div>
-                <h3 className="section-title">Диалоги на ручной разбор</h3>
+                <h3 className="section-title">Что требует ручного разбора</h3>
               </div>
               <Link className="inline-link" href="/conversations">
-                Смотреть все
+                Все диалоги
               </Link>
             </div>
             <div className="stack compact-stack">
@@ -219,7 +140,7 @@ export default async function HomePage() {
                       </div>
                       <p>{lastMessage?.content ?? "Здесь появится превью сообщения."}</p>
                       <div className="badge-row badge-row-tight">
-                        {approvalPending ? <span className="badge">Нужно согласование рекрутера</span> : null}
+                        {approvalPending ? <span className="badge">Нужно согласование</span> : null}
                         {session.playbook?.channelType ? (
                           <span className="badge">{uiLabel(session.playbook.channelType)}</span>
                         ) : null}
@@ -228,7 +149,7 @@ export default async function HomePage() {
                   );
                 })
               ) : (
-                <div className="empty-state">Инбокс чист. Ничего срочного для человека сейчас нет.</div>
+                <div className="empty-state">Сейчас нет диалогов, которые блокируют поток найма.</div>
               )}
             </div>
           </div>
@@ -238,29 +159,33 @@ export default async function HomePage() {
           <div className="card-inner">
             <div className="section-head">
               <div>
-                <div className="kicker">Очередь решений</div>
-                <h3 className="section-title">Кандидаты к следующему шагу</h3>
+                <div className="kicker">Очередь кандидатов</div>
+                <h3 className="section-title">Кого двигать дальше</h3>
               </div>
               <Link className="inline-link" href="/candidates">
-                Открыть кандидатов
+                Открыть базу
               </Link>
             </div>
             <div className="stack compact-stack">
-              {candidateQueue.map(({ candidate, application, recommendation, insight }) => (
-                <div className="list-card" key={candidate.id}>
-                  <div className="list-card-top">
-                    <strong>{candidate.fullName}</strong>
-                    {application?.fitLevel ? <span className="badge">{uiLabel(application.fitLevel)}</span> : null}
+              {candidateQueue.length > 0 ? (
+                candidateQueue.map(({ candidate, application, recommendation, insight }) => (
+                  <div className="list-card" key={candidate.id}>
+                    <div className="list-card-top">
+                      <strong>{candidate.fullName}</strong>
+                      {application?.fitLevel ? <span className="badge">{uiLabel(application.fitLevel)}</span> : null}
+                    </div>
+                    <div className="muted">
+                      {[application?.job?.title, candidate.headline, candidate.location]
+                        .filter(Boolean)
+                        .join(" · ") || "Пока без метаданных"}
+                    </div>
+                    <p>{recommendation?.why ?? application?.recommendedNextStep ?? "Здесь появится следующий шаг."}</p>
+                    <div className="muted">{insight?.content ?? candidate.summary ?? "Здесь появится сводка."}</div>
                   </div>
-                  <div className="muted">
-                    {[application?.job?.title, candidate.headline, candidate.location]
-                      .filter(Boolean)
-                      .join(" · ") || "Пока без метаданных"}
-                  </div>
-                  <p>{recommendation?.why ?? application?.recommendedNextStep ?? "Здесь появится следующий шаг."}</p>
-                  <div className="muted">{insight?.content ?? candidate.summary ?? "Здесь появится сводка."}</div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="empty-state">Очередь пуста, можно загружать новых кандидатов.</div>
+              )}
             </div>
           </div>
         </article>
@@ -269,11 +194,51 @@ export default async function HomePage() {
           <div className="card-inner">
             <div className="section-head">
               <div>
+                <div className="kicker">Срез системы</div>
+                <h3 className="section-title">Текущее состояние контура</h3>
+              </div>
+            </div>
+
+            <div className="mini-stats">
+              <div className="mini-stat">
+                <span>Открытые вакансии</span>
+                <strong>{pipelineMetrics.openJobs}</strong>
+              </div>
+              <div className="mini-stat">
+                <span>Всего кандидатов</span>
+                <strong>{candidateMetrics.totalCandidates}</strong>
+              </div>
+              <div className="mini-stat">
+                <span>Источники импорта</span>
+                <strong>{importMetrics.sourceCount}</strong>
+              </div>
+              <div className="mini-stat">
+                <span>Связанные заявки</span>
+                <strong>{importMetrics.linkedApplications}</strong>
+              </div>
+              <div className="mini-stat">
+                <span>Скрининг в очереди</span>
+                <strong>{pipelineMetrics.screeningLoad}</strong>
+              </div>
+              <div className="mini-stat">
+                <span>Импорт на проверке</span>
+                <strong>{importMetrics.pendingReview}</strong>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="grid-2 dashboard-section">
+        <article className="card">
+          <div className="card-inner">
+            <div className="section-head">
+              <div>
                 <div className="kicker">Автоматизация</div>
                 <h3 className="section-title">Плейбуки и входящий поток</h3>
               </div>
               <Link className="inline-link" href="/playbooks">
-                Открыть автоматизацию
+                Открыть плейбуки
               </Link>
             </div>
             <div className="stack compact-stack">
@@ -309,6 +274,35 @@ export default async function HomePage() {
             </div>
           </div>
         </article>
+
+        <article className="card">
+          <div className="card-inner">
+            <div className="section-head">
+              <div>
+                <div className="kicker">Доступ к модулям</div>
+                <h3 className="section-title">Быстрые переходы по рабочим контурам</h3>
+              </div>
+            </div>
+            <div className="quick-links">
+              <Link className="quick-link" href="/jobs">
+                <strong>{jobMetrics.activeJobs} вакансий</strong>
+                <span>Структура ролей, критерии и этапы найма.</span>
+              </Link>
+              <Link className="quick-link" href="/pipeline">
+                <strong>{pipelineMetrics.openJobs} активных пайплайна</strong>
+                <span>Узкие места, переходы между этапами и загрузка.</span>
+              </Link>
+              <Link className="quick-link" href="/imports">
+                <strong>{importMetrics.sourceCount} источников</strong>
+                <span>Импорт, разбор входящего потока и связка сущностей.</span>
+              </Link>
+              <Link className="quick-link" href="/conversations">
+                <strong>{sessions.length} диалогов</strong>
+                <span>Ручные согласования, эскалации и контроль ответов.</span>
+              </Link>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section className="grid-2 dashboard-section">
@@ -317,7 +311,7 @@ export default async function HomePage() {
             <div className="card-inner">
               <div className="section-head">
                 <div>
-                  <div className="kicker">Фокус на пайплайне</div>
+                  <div className="kicker">Пайплайн вакансии</div>
                   <h3 className="section-title">{job.title}</h3>
                 </div>
                 <Link className="inline-link" href="/pipeline">
@@ -360,35 +354,6 @@ export default async function HomePage() {
             </div>
           </article>
         ))}
-      </section>
-
-      <section className="card dashboard-section">
-        <div className="card-inner">
-          <div className="section-head">
-            <div>
-              <div className="kicker">Рабочие модули</div>
-              <h3 className="section-title">Переход в ключевые контуры управления</h3>
-            </div>
-          </div>
-          <div className="quick-links">
-            <Link className="quick-link" href="/jobs">
-              <strong>{jobs.length} вакансий</strong>
-              <span>Планирование ролей, структура этапов и база критериев оценки</span>
-            </Link>
-            <Link className="quick-link" href="/candidates">
-              <strong>{candidates.length} кандидатов</strong>
-              <span>Профили, готовые к решению, со связанными заявками</span>
-            </Link>
-            <Link className="quick-link" href="/imports">
-              <strong>{sources.length} источников импорта</strong>
-              <span>Операции импорта, связка сущностей и обзор очереди</span>
-            </Link>
-            <Link className="quick-link" href="/conversations">
-              <strong>{sessions.length} ИИ-сессий</strong>
-              <span>Инбокс для согласований, эскалаций и передачи контекста</span>
-            </Link>
-          </div>
-        </div>
       </section>
     </PageShell>
   );

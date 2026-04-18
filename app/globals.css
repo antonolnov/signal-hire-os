@@ -125,11 +125,19 @@ label > div {
   align-items: start;
 }
 
+.shell-dashboard {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
 .sidebar {
   position: sticky;
   top: 20px;
   display: grid;
   gap: 14px;
+}
+
+.sidebar-compact {
+  gap: 0;
 }
 
 .topbar,
@@ -241,6 +249,10 @@ label > div {
   gap: 18px;
 }
 
+.workspace-dashboard {
+  gap: 0;
+}
+
 .workspace-header {
   display: flex;
   align-items: flex-start;
@@ -269,6 +281,67 @@ label > div {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
   gap: 20px;
+}
+
+.dashboard-metrics,
+.mini-stats {
+  display: grid;
+  gap: 16px;
+}
+
+.dashboard-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 20px;
+}
+
+.metric-card,
+.mini-stat {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(20, 28, 46, 0.92), rgba(16, 23, 38, 0.92));
+}
+
+.metric-card {
+  padding: 18px 20px;
+  box-shadow: var(--shadow-md);
+}
+
+.metric-card strong {
+  display: block;
+  margin: 10px 0 6px;
+  font-size: 2rem;
+  letter-spacing: -0.05em;
+}
+
+.metric-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.metric-meta {
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.mini-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mini-stat {
+  padding: 16px;
+}
+
+.mini-stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.mini-stat strong {
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
 }
 
 .highlight {
@@ -540,8 +613,13 @@ label > div {
   .shell-frame,
   .hero,
   .grid-3,
-  .grid-2 {
+  .grid-2,
+  .dashboard-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .mini-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sidebar {
@@ -579,7 +657,8 @@ label > div {
   }
 
   .hero-grid,
-  .quick-links {
+  .quick-links,
+  .mini-stats {
     grid-template-columns: 1fr;
   }
 }
